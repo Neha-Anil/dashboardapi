@@ -25,6 +25,7 @@ app.use(fileUpload());
 app.use(bodyParser.json());
 app.use(cors())
 app.use(express.static('./uploads'));
+
 app.post('/register',(req,res)=>{
 	const {name,id,password,designation}=req.body;
 	const hash=bcrypt.hashSync(password);
@@ -45,6 +46,47 @@ app.post('/register',(req,res)=>{
 		}
 	})
 	.catch(err=>res.status(400).json('unable to register'))
+})
+
+app.post('/mregister',(req,res)=>{
+	const {name,id,password,designation}=req.body;
+	const hash=bcrypt.hashSync(password);
+	db('managers')
+	.returning('*')
+	.where('m_id','=',id)
+	.update({
+		m_name:name,
+		hash:hash,
+		designation:designation
+	})
+	.then(manager=>{
+		if(manager.length){
+		    res.json(manager[0])
+		}
+		else{
+			res.status(400).json('unable to register')
+		}
+	})
+	.catch(err=>res.status(400).json('unable to register'))
+})
+
+app.post('/msignin',(req,res)=>{
+	db.select('m_id','m_name','hash').from('managers')
+	.where('m_id','=',req.body.id)
+	.then(data=>{
+		const isValid=bcrypt.compareSync(req.body.password,data[0].hash);
+		if(isValid){
+			return db.select('*').from('managers')
+			.where('m_id','=',req.body.id)
+			.then(user=>{
+				res.json(user[0])
+			})
+			.catch(err=>res.status(400).json('unable to get user'))
+		}else{
+			res.status(400).json('wrong credentials')
+		}
+	})
+	.catch(err=>res.status(400).json('wrong credentials'))
 })
 
 app.post('/signin',(req,res)=>{
@@ -85,7 +127,7 @@ app.post('/signin',(req,res)=>{
   //}
 });
 */
-app.post('/upload', function(req, res) {
+/*app.post('/upload', function(req, res) {
   if (Object.keys(req.files).length == 0) {
     return res.status(400).send('No files were uploaded.');
   }
@@ -100,7 +142,7 @@ app.post('/upload', function(req, res) {
 
     res.send('File uploaded!');
   });
-});
+}); */
 app.listen(3000,()=>{
 	console.log('app is running on port 3000');
 });
